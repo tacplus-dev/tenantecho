@@ -7,6 +7,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -40,7 +41,9 @@ func run() error {
 	defer s.Close()
 
 	// This instance's own identity, from the token the fleet minted for it:
-	// tenants/<tenant>/services/tenantecho for a tenant-owned instance.
+	// the SPIFFE id spiffe://<td>/tenants/<tenant>/services/tenantecho for a
+	// tenant-owned instance. The service path alone is "tenantecho" for every
+	// tenant's instance, which is exactly what the proof must distinguish.
 	raw, err := s.GetToken()
 	if err != nil {
 		return fmt.Errorf("own token: %w", err)
@@ -49,9 +52,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("own token: %w", err)
 	}
-	servedBy, err := own.ServicePath()
-	if err != nil {
-		return fmt.Errorf("own identity: %w", err)
+	servedBy := own.GetSubject()
+	if servedBy == "" {
+		return errors.New("own token has no subject")
 	}
 	zap.L().Info("tenantecho", zap.String("served_by", servedBy))
 	return s.Run(&echo.Server{ServedBy: servedBy})

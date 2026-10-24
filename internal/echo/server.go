@@ -21,7 +21,7 @@ import (
 
 // Server implements the generated TenantEcho handler.
 type Server struct {
-	// ServedBy is this instance's own service identity path
+	// ServedBy is this instance's own SPIFFE identity
 	// (tenants/<tenant>/services/tenantecho), read from its own token at start.
 	ServedBy string
 
