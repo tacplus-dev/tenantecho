@@ -1,6 +1,11 @@
 kind: service
 language: go
 src: proto
+depends:
+  # PingPigeon asks the coop for a pigeon (S2S) and talks to it on the coop's
+  # PigeonMessage thread, which publishes through the eventbus broker.
+  - coop
+  - eventbus
 # pkg is derived from go.mod (the org name has a hyphen, which pkg cannot carry).
 # A derived Go package is <module>/tacplus, so the output segment must be "tacplus".
 output-dir: tacplus

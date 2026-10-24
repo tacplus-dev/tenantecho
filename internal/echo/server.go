@@ -24,6 +24,9 @@ type Server struct {
 	// ServedBy is this instance's own SPIFFE identity
 	// (tenants/<tenant>/services/tenantecho), read from its own token at start.
 	ServedBy string
+	// Pigeons is the dog's side of the coop's thread; nil when this instance
+	// has no coop, and PingPigeon says so.
+	Pigeons *Pigeons
 
 	mu       sync.RWMutex
 	greeting string

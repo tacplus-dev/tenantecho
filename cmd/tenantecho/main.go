@@ -56,6 +56,13 @@ func run() error {
 	if servedBy == "" {
 		return errors.New("own token has no subject")
 	}
+	pigeons := &echo.Pigeons{
+		Coop:      s.Grpc().Clients().Services().CoopClient(),
+		Publish:   s.CreateCoopPigeonMessageBusStreamPublisher(),
+		Namespace: own.GetNamespace(),
+	}
+	// The coop's thread comes back on this instance's subscription.
+	s.SetOnStreamCoopPigeonMessageBusStreamFunc(pigeons.OnMessage)
 	zap.L().Info("tenantecho", zap.String("served_by", servedBy))
-	return s.Run(&echo.Server{ServedBy: servedBy})
+	return s.Run(&echo.Server{ServedBy: servedBy, Pigeons: pigeons})
 }
