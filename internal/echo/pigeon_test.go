@@ -52,7 +52,7 @@ func fromPigeon(t *testing.T, body *pigeon_pb.FromPigeon) *coop_pb.PigeonMessage
 func newDog(t *testing.T, coop *fakeCoop) (*Server, *[]*coop_pb.PigeonMessage) {
 	t.Helper()
 	var sent []*coop_pb.PigeonMessage
-	p := &Pigeons{Coop: coop, Namespace: "/tenants/acme", Self: "spiffe://local.dev/tenants/acme/services/tenantecho", Wait: 2 * time.Second}
+	p := &Pigeons{Coop: coop, Namespace: "/tenants/acme", Wait: 2 * time.Second}
 	// Publishing the task is what makes the (fake) pigeon answer, as the real
 	// thread would deliver it back through the subscription.
 	p.Publish = func(ctx context.Context, m *coop_pb.PigeonMessage) error {
@@ -98,7 +98,7 @@ func TestPingPigeonRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	if m.GetDirection() != coop_pb.Direction_DIRECTION_TO_PIGEON || m.GetRunId() != "run1" || m.GetTenantNamespace() != "/tenants/acme" ||
-		m.GetSender() != "spiffe://local.dev/tenants/acme/services/tenantecho" ||
+		m.GetSpiffeId() != "" || // eventbus stamps the sender from the publish token; the dog sends none
 		to.GetTask().GetKind() != "echo.ping" || string(to.GetTask().GetRequest()) != "hello" {
 		t.Fatalf("task message %+v / %+v", m, &to)
 	}

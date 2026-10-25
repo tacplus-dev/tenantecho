@@ -60,7 +60,6 @@ func run() error {
 		Coop:      s.Grpc().Clients().Services().CoopClient(),
 		Publish:   s.CreateCoopPigeonMessageBusStreamPublisher(),
 		Namespace: own.GetNamespace(),
-		Self:      servedBy,
 	}
 	// The coop's thread comes back on this instance's subscription.
 	s.SetOnStreamCoopPigeonMessageBusStreamFunc(pigeons.OnMessage)
