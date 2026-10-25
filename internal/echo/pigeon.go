@@ -75,7 +75,9 @@ func (s *Server) PingPigeon(ctx context.Context, caller *servicemanager.Caller, 
 	defer func() {
 		endCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = p.Coop.CancelPigeon(endCtx, &coop_pb.CancelPigeonRequest{RunId: ticket.GetRunId()})
+		if _, err := p.Coop.CancelPigeon(endCtx, &coop_pb.CancelPigeonRequest{RunId: ticket.GetRunId(), Reason: coop_pb.DiscardReason_DISCARD_REASON_DONE}); err != nil {
+			zap.L().Warn("cancelling pigeon run", zap.String("run", ticket.GetRunId()), zap.Error(err))
+		}
 	}()
 
 	ch := p.waiters.add(ticket.GetRunId())

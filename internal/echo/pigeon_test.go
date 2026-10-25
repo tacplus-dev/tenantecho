@@ -33,6 +33,9 @@ func (f *fakeCoop) CreatePigeon(_ context.Context, req *coop_pb.PigeonRequest, _
 	return &coop_pb.PigeonTicket{RunId: "run1", ThreadId: "run1", PigeonSpiffeId: "spiffe://local.dev/system/services/coop"}, nil
 }
 func (f *fakeCoop) CancelPigeon(_ context.Context, req *coop_pb.CancelPigeonRequest, _ ...grpc.CallOption) (*coop_pb.CancelPigeonResponse, error) {
+	if req.GetReason() == coop_pb.DiscardReason_DISCARD_REASON_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "reason must be a defined value") // what the generated validation says
+	}
 	f.cancelled = append(f.cancelled, req.GetRunId())
 	return &coop_pb.CancelPigeonResponse{}, nil
 }
