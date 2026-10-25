@@ -66,8 +66,12 @@ func (s *Server) PingPigeon(ctx context.Context, caller *servicemanager.Caller, 
 		return nil, status.Errorf(status.Code(err), "coop: %v", err)
 	}
 	// The run ends when this ping does, whichever way: a proof's pigeons must
-	// not pile up against the tenant's live cap.
+	// not pile up against the tenant's live cap. Unless the caller asked to
+	// keep it, to watch the coop's deadline end it.
 	defer func() {
+		if req.GetKeep() {
+			return
+		}
 		endCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if _, err := p.Coop.CancelPigeon(endCtx, &coop_pb.CancelPigeonRequest{RunId: ticket.GetRunId(), Reason: coop_pb.DiscardReason_DISCARD_REASON_DONE}); err != nil {

@@ -108,6 +108,21 @@ func TestPingPigeonRoundTrip(t *testing.T) {
 	}
 }
 
+// keep leaves the run to the coop's deadline: no cancel after the result.
+func TestPingPigeonKeepDoesNotCancel(t *testing.T) {
+	coop := &fakeCoop{reply: []*coop_pb.PigeonMessage{fromPigeon(t, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
+		Status: pigeon_pb.ResultStatus_RESULT_STATUS_OK, Result: []byte("pong"),
+	}}})}}
+	s, _ := newDog(t, coop)
+	resp, err := s.PingPigeon(context.Background(), nil, &pb.PingPigeonRequest{Message: "x", Keep: true})
+	if err != nil || resp.GetResult() != "pong" {
+		t.Fatalf("%v %v", resp, err)
+	}
+	if len(coop.cancelled) != 0 {
+		t.Fatalf("keep must leave the run alive: cancelled %v", coop.cancelled)
+	}
+}
+
 func TestPingPigeonFailuresAndTimeout(t *testing.T) {
 	coop := &fakeCoop{reply: []*coop_pb.PigeonMessage{fromPigeon(t, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
 		Status: pigeon_pb.ResultStatus_RESULT_STATUS_FAILED, Failure: &pigeon_pb.Failure{Code: pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK, Detail: "bad"},
