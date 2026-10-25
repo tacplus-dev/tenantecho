@@ -40,6 +40,11 @@ type Pigeons struct {
 	// Namespace is this instance's tenant namespace, from its own token: the
 	// thread's store namespace.
 	Namespace string
+	// Self is this instance's own SPIFFE id, the sender of its messages. The
+	// wrapper stamps (spec.principal) on RPC requests from the caller's token,
+	// but nothing stamps it on a published event, so the publisher says who it
+	// is; the broker's publish auth is what makes that worth anything.
+	Self string
 	// Wait bounds how long a ping waits for the pigeon's result.
 	Wait time.Duration
 
@@ -84,7 +89,7 @@ func (s *Server) PingPigeon(ctx context.Context, caller *servicemanager.Caller, 
 	}
 	if err := p.Publish(ctx, &coop_pb.PigeonMessage{
 		RunId: ticket.GetRunId(), ThreadId: ticket.GetThreadId(), Direction: coop_pb.Direction_DIRECTION_TO_PIGEON,
-		Kind: pigeonKind, Seq: 1, Body: body, TenantNamespace: p.Namespace, SentMs: time.Now().UnixMilli(),
+		Kind: pigeonKind, Seq: 1, Body: body, TenantNamespace: p.Namespace, SentMs: time.Now().UnixMilli(), Sender: p.Self,
 	}); err != nil {
 		return nil, status.Errorf(codes.Unavailable, "publishing the task: %v", err)
 	}
