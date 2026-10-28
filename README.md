@@ -10,6 +10,11 @@ start — the caller's tenant namespace from the caller's token, and the instanc
 `greeting`. A call that the gateway routed to the wrong tenant's instance says so in its own
 response: `served_by` names a tenant other than `caller_namespace`.
 
+Every rpc routes by its request's `tenant`, the target tenant's tid (tacplus 2.5 `route_field`): the
+caller names it, never the token, and an empty or malformed one is refused (`INVALID_ARGUMENT`).
+The door is the default one, without `RPC_FLAG_ANY_TENANT`: only members of the target tenant get
+in. So a call lands in the caller's own tenant's instance or is refused, never another tenant's.
+
 That is the whole purpose: deployed into two tenant namespaces by the proof fleet
 (`fleet-seatrials`), it shows the gateway routes each tenant's call to that tenant's instance.
 

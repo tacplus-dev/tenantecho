@@ -1,6 +1,6 @@
 kind: service
 # The compiler line this repository builds with: the looper runs its latest patch.
-tacplus: "2.4"
+tacplus: "2.5"
 language: go
 src: proto
 depends:
