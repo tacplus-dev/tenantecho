@@ -7,6 +7,7 @@ The smallest tenant-owned tacplus service: `TenantEcho.Ping` proves the gateway 
 Go. Unreleased; tacplus floor 2.4 (declared, #1 still open).
 
 ## Next
+- Declare route fields (target tenant on every rpc), floor 2.5 (#5, after tacplus#198)
 - Nothing approved and unblocked; every open approved issue is in Later.
 
 ## Later
