@@ -25,6 +25,7 @@ import (
 type fakeCoop struct {
 	created   []*coop_pb.PigeonRequest
 	cancelled []string
+	cancels   []*coop_pb.CancelPigeonRequest
 	reply     []*coop_pb.PigeonMessage
 }
 
@@ -37,6 +38,7 @@ func (f *fakeCoop) CancelPigeon(_ context.Context, req *coop_pb.CancelPigeonRequ
 		return nil, status.Error(codes.InvalidArgument, "reason must be a defined value") // what the generated validation says
 	}
 	f.cancelled = append(f.cancelled, req.GetRunId())
+	f.cancels = append(f.cancels, req)
 	return &coop_pb.CancelPigeonResponse{}, nil
 }
 
@@ -154,5 +156,63 @@ func TestPingPigeonFailuresAndTimeout(t *testing.T) {
 
 	if _, err := (&Server{}).PingPigeon(context.Background(), nil, &pb.PingPigeonRequest{Message: "x"}); status.Code(err) != codes.Unimplemented {
 		t.Fatalf("no coop: %v", err)
+	}
+}
+
+// A traced ping carries its trace_id on every call it causes: the
+// CreatePigeon, the task's PigeonMessage and the CancelPigeon, whichever way
+// the ping ends. An untraced one sends none.
+func TestPingPigeonPropagatesTraceID(t *testing.T) {
+	ok := func() []*coop_pb.PigeonMessage {
+		return []*coop_pb.PigeonMessage{fromPigeon(t, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
+			Status: pigeon_pb.ResultStatus_RESULT_STATUS_OK, Result: []byte("pong"),
+		}}})}
+	}
+	failed := []*coop_pb.PigeonMessage{fromPigeon(t, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
+		Status: pigeon_pb.ResultStatus_RESULT_STATUS_FAILED, Failure: &pigeon_pb.Failure{Code: pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK, Detail: "bad"},
+	}}})}
+	for _, tc := range []struct {
+		name    string
+		trace   string
+		keep    bool
+		reply   []*coop_pb.PigeonMessage
+		wait    time.Duration
+		wantErr codes.Code
+	}{
+		{name: "ok", trace: "trace-ok", reply: ok()},
+		{name: "keep", trace: "trace-keep", keep: true, reply: ok()},
+		{name: "failed", trace: "trace-failed", reply: failed, wantErr: codes.Unavailable},
+		{name: "timeout", trace: "trace-timeout", wait: 50 * time.Millisecond, wantErr: codes.DeadlineExceeded},
+		{name: "untraced", reply: ok()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			coop := &fakeCoop{reply: tc.reply}
+			s, sent := newDog(t, coop)
+			if tc.wait != 0 {
+				s.Pigeons.Wait = tc.wait
+			}
+			_, err := s.PingPigeon(context.Background(), nil, &pb.PingPigeonRequest{Message: "x", Keep: tc.keep, TraceId: tc.trace})
+			if status.Code(err) != tc.wantErr {
+				t.Fatalf("err %v, want %v", err, tc.wantErr)
+			}
+			if len(coop.created) != 1 || coop.created[0].GetTraceId() != tc.trace {
+				t.Fatalf("CreatePigeon trace_id: %+v, want %q", coop.created, tc.trace)
+			}
+			if len(*sent) != 1 || (*sent)[0].GetTraceId() != tc.trace {
+				t.Fatalf("task PigeonMessage trace_id: %+v, want %q", *sent, tc.trace)
+			}
+			wantCancels := 1
+			if tc.keep {
+				wantCancels = 0
+			}
+			if len(coop.cancels) != wantCancels {
+				t.Fatalf("cancels %+v, want %d", coop.cancels, wantCancels)
+			}
+			for _, c := range coop.cancels {
+				if c.GetTraceId() != tc.trace {
+					t.Fatalf("CancelPigeon trace_id %q, want %q", c.GetTraceId(), tc.trace)
+				}
+			}
+		})
 	}
 }

@@ -61,20 +61,24 @@ func (s *Server) PingPigeon(ctx context.Context, caller *servicemanager.Caller, 
 		Kind:       pigeonKind,
 		Task:       []byte(req.GetMessage()),
 		DeadlineMs: time.Now().Add(wait).UnixMilli(),
+		TraceId:    req.GetTraceId(),
 	})
 	if err != nil {
 		return nil, status.Errorf(status.Code(err), "coop: %v", err)
 	}
 	// The run ends when this ping does, whichever way: a proof's pigeons must
 	// not pile up against the tenant's live cap. Unless the caller asked to
-	// keep it, to watch the coop's deadline end it.
+	// keep it, to watch the coop's deadline end it. The cancel runs on its own
+	// context but is still this ping's call, so it carries the ping's trace_id.
 	defer func() {
 		if req.GetKeep() {
 			return
 		}
 		endCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if _, err := p.Coop.CancelPigeon(endCtx, &coop_pb.CancelPigeonRequest{RunId: ticket.GetRunId(), Reason: coop_pb.DiscardReason_DISCARD_REASON_DONE}); err != nil {
+		if _, err := p.Coop.CancelPigeon(endCtx, &coop_pb.CancelPigeonRequest{
+			RunId: ticket.GetRunId(), Reason: coop_pb.DiscardReason_DISCARD_REASON_DONE, TraceId: req.GetTraceId(),
+		}); err != nil {
 			zap.L().Warn("cancelling pigeon run", zap.String("run", ticket.GetRunId()), zap.Error(err))
 		}
 	}()
@@ -91,6 +95,7 @@ func (s *Server) PingPigeon(ctx context.Context, caller *servicemanager.Caller, 
 	if err := p.Publish(ctx, &coop_pb.PigeonMessage{
 		RunId: ticket.GetRunId(), ThreadId: ticket.GetThreadId(), Direction: coop_pb.Direction_DIRECTION_TO_PIGEON,
 		Kind: pigeonKind, Seq: 1, Body: body, TenantNamespace: p.Namespace, SentMs: time.Now().UnixMilli(),
+		TraceId: req.GetTraceId(),
 	}); err != nil {
 		return nil, status.Errorf(codes.Unavailable, "publishing the task: %v", err)
 	}
