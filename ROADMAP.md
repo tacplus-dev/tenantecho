@@ -9,6 +9,7 @@ Go. Unreleased; tacplus floor 2.4 (declared, #1 still open).
 ## Next
 - Declare route fields (target tenant on every rpc), floor 2.5 (#5, after tacplus#198)
 - Nothing approved and unblocked; every open approved issue is in Later.
+- Contribute a ping page to the fleet's gateway: the example module (#7). Agent, at Jody's request, 2026-11-06.
 
 ## Later
 - Declare the tacplus floor 2.4 and pass the gates on it (#1), blocked on tacplus-dev/tacplus#189
