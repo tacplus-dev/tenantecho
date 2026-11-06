@@ -5,3 +5,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 
 - 2026-11-03 looper issue PingPigeon drops the inbound trace_id on CreatePigeon, the task publish and CancelPigeon, with no test for it (#8, b173d52)
 - 2026-11-06 looper issue Declare the tacplus floor: 2.4 (#1)
+- 2026-11-06 looper issue Bump golang.org/x/net to v0.61.0: five HTTP/2 advisories (GO-2026-6603/6610/6611/6612/6617) (#3)
