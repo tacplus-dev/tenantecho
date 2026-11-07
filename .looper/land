@@ -1,0 +1,4 @@
+id=20261107T121340Z-7-2812524313
+gates=TACPLUS_MINOR=2.6 tacplus build && go build ./... && go vet ./... && go test ./... && cd web && tacplus build && npm ci --ignore-scripts && npx vitest run && TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build && h1=$(cd dist && find . -type f | sort | xargs sha256sum) && rm -rf dist node_modules && npm ci --ignore-scripts && TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build && h2=$(cd dist && find . -type f | sort | xargs sha256sum) && test "$h1" = "$h2" && echo "web/dist reproducible" && echo "$h2"
+state=queued
+queued=2026-11-07T12:13:40Z
