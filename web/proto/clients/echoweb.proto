@@ -1,0 +1,16 @@
+// Copyright (c) 2026 Jody Scott
+// SPDX-License-Identifier: Apache-2.0
+syntax = "proto3";
+
+package echoweb;
+
+import "sys/spec.proto";
+
+// echoweb is tenantecho's ping page, a module of the fleet's gateway webapp. It
+// is a browser client of the fleet (W2S: gRPC over the gateway's REST
+// translation) on the gateway's origin, signed in by the gateway's session.
+
+// The ping itself.
+option (spec.grpc_w2s_client) = {service: "tenantecho.TenantEcho"};
+// Per-service tokens from the session's refresh token, as every web client.
+option (spec.grpc_w2s_client) = {service: "gateway.Mint"};

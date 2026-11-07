@@ -1,0 +1,24 @@
+# The ping page tenantecho contributes to its fleet's gateway (the root
+# tacplus.yaml's contribute.webapp), served at /-/apps/tenantecho/. A tacplus
+# TypeScript client: its W2S clients of tenantecho.TenantEcho and gateway.Mint
+# are declared in proto/clients/echoweb.proto. The fleet builder regenerates
+# them here against the fleet's merged protos before `npm run build`.
+kind: client
+tacplus: "2.6"
+language: typescript
+# Its own package is echoweb: every other package here is a service it calls.
+pkg: com.github.tacplusdev.echoweb
+src: proto
+# This repository's own contract, so the page follows this checkout's proto.
+sources:
+  - ../proto
+output-dir: model
+# gateway.Mint mints the signed-in person's tokens from the gateway's session;
+# tenantecho's proto names coop and eventbus.
+depends:
+  - gateway
+  - coop
+  - eventbus
+header: |
+  Copyright (c) 2026 Jody Scott
+  SPDX-License-Identifier: Apache-2.0
