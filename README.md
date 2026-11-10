@@ -38,3 +38,16 @@ npm ci --ignore-scripts
 npx vitest run
 TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build   # writes web/dist/
 ```
+
+## Build and test
+
+`just gates` regenerates `tacplus/` and `web/model/` (neither committed), builds, vets and tests the
+service, and tests and builds the ping page. It runs in the build image `tacplus.lock` pins, by digest,
+as the build pipeline (tacplus-dev/build) runs it: there `tacplus` runs exactly the pinned release.
+`web/` is a tacplus project of its own, so it has its own `web/tacplus.lock`, pinned to the same
+release. Move both pins together, with `tacplus pin` in each directory, in one commit. `depends`
+resolve through the private tacplus-dev registry, so pass a GitHub token:
+
+```sh
+docker run --rm -e GH_TOKEN -v "$PWD:/src" -w /src "$(sed -n 's/^build_image: *//p' tacplus.lock)" just gates
+```
