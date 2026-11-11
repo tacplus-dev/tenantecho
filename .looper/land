@@ -1,0 +1,4 @@
+id=20261111T160751Z-11-169672536
+gates=tacplus build && go build ./... && go vet ./... && go test ./... && (cd web && tacplus build && npm ci --ignore-scripts && npx vitest run && TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build)
+state=queued
+queued=2026-11-11T16:07:51Z

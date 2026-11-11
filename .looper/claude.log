@@ -1,0 +1,60 @@
+= init
+> Bash git status && git log --oneline -5 && git diff && git log origin/main --oneline -3; gh issue view 11 --repo tacplus-dev/tenantecho --comments | tail -30
+< On branch looper/tenantecho-11 Your branch is up to date with 'origin/main'.  Changes not staged for commit:   (use "git add <file>..." to update what will be committed)   (use "git restore <file>..." to discard changes in working directory) 	modified:   PROPOSALS.md 	modified:   STATE.md 	modified:...
+= thinking_tokens
+= thinking_tokens
+> Bash which glab curl; gh issue view 113 --repo tacplus-dev/looper --comments | tail -40; gh issue view 127 --repo tacplus-dev/looper --json state,title
+< /usr/local/bin/glab /usr/bin/curl remote:  remote: Create a pull request for 'looper/build-looper-113' on GitHub by visiting:         remote:      https://github.com/tacplus-dev/looper/pull/new/looper/build-looper-113         remote:  the build job https://gitlab.com/tacplus-dev/build/-/pipelines/30...
+> Bash gh issue view 18 --repo tacplus-dev/cluster --json state,title,comments --jq '.state, .title, (.comments[-3:][] | .author.login + " " + .createdAt + ": " + .body[0:600])'
+< OPEN Hub: register and apply the in-cluster runners and cluster's own pipeline (README, What the hub does 1–7) tacplus-looper 2026-11-10T09:09:05Z: **Looper, cluster#18: what an agent could do is queued to land. The rest is Jody's by hand.**  This run has no GitLab token, and its Google account (`lo...
+= thinking_tokens
+= thinking_tokens
+> Bash glab api "projects/tacplus-dev%2Fbuild/pipelines?per_page=10" 2>&1 | head -c 2000; echo; glab api "projects/tacplus-dev%2Fbuild/pipelines/3054391083" 2>&1 | head -c 800
+< {"message":"404 Project Not Found"}glab: 404 Project Not Found (HTTP 404)  {"message":"404 Project Not Found"}glab: 404 Project Not Found (HTTP 404)
+> Bash gh issue view 19 --repo tacplus-dev/blobstore --json state,comments --jq '.state, (.comments[-3:][] | .author.login + " " + .createdAt + ": " + .body[0:500])'; gh search issues --owner tacplus-dev "manager merged" --sort updated --limit 5 --json repository,number,updatedAt 2>&1 | head -c 1000
+< OPEN tacplus-looper 2026-11-11T14:51:43Z: The looper of blobstore starts this issue with its limit 4h capped at 4h by this job (https://gitlab.com/tacplus-dev/looper/-/jobs/17937847364), which ends sooner: the run stops by itself before then, its work checkpointed, and the next run resumes it. tacpl...
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+Build runners are still starved (cluster#18), so I'm committing the pin, queuing the land, and marking this issue as waiting on the build pool, the same way blobstore#19 was handled.
+> Bash git add tacplus.lock STATE.md && git commit -q -F - <<'EOF' tacplus.lock: pin 2.6.8, whose build image has go1.27.4 (#11)  build:2.6.1 compiles with go1.27.3, affected by GO-2026-6859 (net/http HTTP/1 server crash on a MaxBytesReader header race); go1.27.4 has the fix. The floor stays 2.6.  Co-Autho...
+< 3bbaf58 PROPOSALS.md: #11's fix cannot ship as v0.1.1 either (#11) 222115f tacplus.lock: pin 2.6.8, whose build image has go1.27.4 (#11) 89085d2 HISTORY.md: #9 (looper) [2026-11-11T16:07:44Z] checkpoint of #11 (a step) pushed to looper/tenantecho-11:  5 files changed, 258 insertions(+), 6 deletions(...
+= thinking_tokens
+= thinking_tokens
+> Bash grep -n -i -A3 'tacplus build\|go test\|npm' README.md CONTRIBUTING.md 2>/dev/null | head -30
+< README.md:36:tacplus build README.md:37:npm ci --ignore-scripts README.md-38-npx vitest run README.md:39:TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build   # writes web/dist/ README.md-40-```
+> Bash sed -n 20,40p README.md
+< Registered in the tacplus registry as `tenantecho`, id 103.  ## The ping page (`web/`)  tenantecho is the example contribution to a fleet's gateway (tacplus `docs/USER.md`, "Contributing to the gateway"): `web/` is a small webapp module, served by the gateway at `/-/apps/tenantecho/`. It pings the t...
+> Bash nohup /usr/local/bin/repo-looper --repo tenantecho --issue 11 --land --gates "tacplus build && go build ./... && go vet ./... && go test ./... && (cd web && tacplus build && npm ci --ignore-scripts && npx vitest run && TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build)" > /tmp/land11.log 2>&1 & ech...
+= task_started
+= task_notification
+< 932 [2026-11-11T16:07:52Z] checkpoint of #11 (land queued) pushed to looper/tenantecho-11:  6 files changed, 270 insertions(+), 6 deletions(-) [2026-11-11T16:07:54Z] queued: the manager of tenantecho merges looper/tenantecho-11 after the lands queued before it, one at a time, and says on the issue w...
+= thinking_tokens
+= thinking_tokens
+> Bash gh issue comment 11 --repo tacplus-dev/tenantecho --body-file - <<'EOF' Status at 16:09Z, 2026-11-11. This run ends. The land stays queued, and the issue now waits on tacplus-dev/cluster#18.  - **Committed** on `looper/tenantecho-11`, on main 89085d2:   - 222115f: `tacplus.lock` pins `tacplus: 2.6.8...
+< https://github.com/tacplus-dev/tenantecho/issues/11#issuecomment-6800861029 Blocked-by: tacplus-dev/cluster#18
+Issue #11 is not done: the fix is committed and queued to land on main, but the build and tests could not run, so I've marked the issue as waiting on tacplus-dev/cluster#18.
+
+- **Committed** on `looper/tenantecho-11`, on main 89085d2:
+  - 222115f moves `tacplus.lock` from 2.6.1 to 2.6.8 and pins its build image by digest. That image's Go is go1.27.4, which has the fix for GO-2026-6859. The tacplus floor stays "2.6", and STATE.md is updated.
+  - 3bbaf58 adds a note to PROPOSALS.md: this fix can't ship as v0.1.1. Main has taken a feature since v0.1.0 (#7) and there is no `release/0.1` branch to backport it to.
+
+  The previous run's work was in the checkout but never committed, so these are new commits rather than the earlier 5573e1d.
+- **Land:** queued again at 16:07Z, on the full gates: the README's build and test steps for the Go code and for `web/`. Both earlier lands came back red because of the build infrastructure, not a test failure. One got a 422 from GitLab (looper#127). The other, the 13:05Z land, had no verdict within 3h because no build runner is taking jobs (cluster#18). blobstore#19, the same pin move, is waiting on the same thing.
+- **Not verified yet:** the build and tests on 2.6.8, and govulncheck on the build (acceptance criteria 2 and 3). Both need a build job that actually gets a runner.
+- **Release:** no v0.1.1 is tagged, for the same reason as the PROPOSALS.md note.
+
+I posted this status on the issue and wrote `Blocked-by: tacplus-dev/cluster#18` to the outcome file; the issue stays open. If the queued land goes green, the manager merges it and the next run adds the govulncheck evidence and closes the issue. If it comes back red on infrastructure again, the next run lands it again once cluster#18 is closed.
+= success: Issue #11 is not done: the fix is committed and queued to land on main, but the build and tests could not run, so I've marked the issue as waiting on tacplus-dev/cluster#18.
+
+- **Committed** on `looper/tenantecho-11`, on main 89085d2:
+  - 222115f moves `tacplus.lock` from 2.6.1 to 2.6.8 and pins its build image by digest. That image's Go is go1.27.4, which has the fix for GO-2026-6859. The tacplus floor stays "2.6", and STATE.md is updated.
+  - 3bbaf58 adds a note to PROPOSALS.md: this fix can't ship as v0.1.1. Main has taken a feature since v0.1.0 (#7) and there is no `release/0.1` branch to backport it to.
+
+  The previous run's work was in the checkout but never committed, so these are new commits rather than the earlier 5573e1d.
+- **Land:** queued again at 16:07Z, on the full gates: the README's build and test steps for the Go code and for `web/`. Both earlier lands came back red because of the build infrastructure, not a test failure. One got a 422 from GitLab (looper#127). The other, the 13:05Z land, had no verdict within 3h because no build runner is taking jobs (cluster#18). blobstore#19, the same pin move, is waiting on the same thing.
+- **Not verified yet:** the build and tests on 2.6.8, and govulncheck on the build (acceptance criteria 2 and 3). Both need a build job that actually gets a runner.
+- **Release:** no v0.1.1 is tagged, for the same reason as the PROPOSALS.md note.
+
+I posted this status on the issue and wrote `Blocked-by: tacplus-dev/cluster#18` to the outcome file; the issue stays open. If the queued land goes green, the manager merges it and the next run adds the govulncheck evidence and closes the issue. If it comes back red on infrastructure again, the next run lands it again once cluster#18 is closed.
