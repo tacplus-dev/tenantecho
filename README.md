@@ -38,3 +38,37 @@ npm ci --ignore-scripts
 npx vitest run
 TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build   # writes web/dist/
 ```
+
+## Releasing
+
+tenantecho is released by version, `vMAJOR.MINOR.PATCH`, so fleets pin it by release line
+(tacplus-dev/tacplus#180). It stays on `0.x` until SeaBeam's launch, when `1.0.0` is cut; on `0.x` a
+minor may break, a patch never does. A fix is a patch, a feature a minor; both are tagged on main, and a
+patch to an older line on its `release/MAJOR.MINOR` branch.
+
+To cut a release, push an annotated tag on a green commit:
+
+```sh
+git tag -a v0.2.0 -m "tenantecho 0.2.0: <what it brings>"
+git push origin v0.2.0
+```
+
+The tag runs `.github/workflows/release.yml`: the gates on the tag (generate, build, vet, test) in the
+build image `tacplus.lock` pins, the image `ghcr.io/tacplus-dev/tenantecho:0.2.0` labelled with its
+version and commit, and the line tag `0.2`, which moves only to the line's highest patch, never
+backwards nor on another line's release. Then the GitHub release, with the commits since the previous
+release as its notes; a patch on an older line is never marked Latest. The image is linux/arm64; amd64 is
+off by default, as in the fleets, and `ARCHS: amd64 arm64` in the workflow builds both. A tag is never
+moved or deleted.
+
+The workflow can also be run by hand (Actions, release, Run workflow) with a version:
+
+- without `publish`, a dry run: it builds the tag, or main tagged locally as that version, and prints the
+  image tags and notes that release would get, publishing nothing;
+- with `publish`, it releases an existing tag that has no release yet, as its tag push would have, with the
+  scripts of the workflow's commit: for a tag cut before the workflow existed (v0.1.0). A tag without a
+  `tacplus.lock` builds with that commit's pin, and its notes say so.
+
+The package must be public, so pulls need no credential: the first release's last step fails, naming it,
+until an org owner makes it public once (the package's settings, Change visibility). The release scripts'
+tests: `ci/release_test.sh`.

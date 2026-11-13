@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Release image: the pre-built static tenantecho binary on a minimal base. The binary
-# is built by the fleet's image pipeline against the fleet's merged protos.
+# is built by the fleet's image pipeline against the fleet's merged protos, or by this
+# repository's release against its own (ci/release-build.sh, .github/workflows/release.yml).
 ARG BASE_IMAGE=alpine:3.24
 FROM ${BASE_IMAGE}
 ARG VERSION=0.0.0
