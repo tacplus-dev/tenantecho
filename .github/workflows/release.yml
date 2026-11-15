@@ -1,0 +1,142 @@
+name: release
+
+# On a version tag vX.Y.Z: run the gates on the tag in the build image its tacplus.lock pins, publish
+# ghcr.io/tacplus-dev/tenantecho:X.Y.Z, move the line tag X.Y when this is the line's highest release
+# (ci/release-tags.sh), and create the GitHub release with the commits since the previous release
+# (ci/release-notes.sh), never marking a release on an older line Latest. A pre-release (vX.Y.Z-rc.N)
+# publishes only its own tag. Fleets pin X.Y (tacplus-dev/tacplus#180); README, Releasing.
+#
+# workflow_dispatch takes a version. With publish, it releases an existing tag as a tag push would, from
+# this workflow's scripts: for a tag cut before the workflow (v0.1.0), and never moving the tag. Without,
+# it is a dry run: it builds the tag, or HEAD tagged locally as the version, prints the image tags and notes
+# that release would get, and publishes nothing.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. v0.1.1"
+        required: true
+      publish:
+        description: "Publish an existing tag; off, a dry run that publishes nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One release at a time, so of two tags on one line the later run sees the other before it moves X.Y.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+  # The image's architectures: arm64, what the fleets run on. amd64 is off by default, as in the fleets'
+  # images/pins.yaml `platforms` (fleet-seatrials#23); "amd64 arm64" builds both, one multi-arch image.
+  ARCHS: arm64
+  # The launcher every service image runs under (Dockerfile), built from source at this commit.
+  LAUNCHER_COMMIT: d130eab7fcb42413fe0d2bdf5543e4edc23f9747
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # The scripts: the tag's own on a tag push, this workflow's commit's when dispatched. Every tag, since
+      # the line tag and the notes depend on the releases already made.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Source, tags and notes
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            if [[ $DRY_RUN != true ]] && gh release view "$VERSION" >/dev/null 2>&1; then
+              echo "$VERSION is already released"; exit 1
+            fi
+          elif [[ $DRY_RUN == true ]]; then
+            git tag "$VERSION"
+          else
+            echo "$VERSION is not a tag: publish releases an existing tag"; exit 1
+          fi
+          revision="$(git rev-parse "$VERSION^{commit}")"
+          src="$RUNNER_TEMP/src"
+          git worktree add --detach "$src" "$revision"
+          tags="$(ci/release-tags.sh "$VERSION")"
+          ci/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+          if [[ ! -f "$src/tacplus.lock" ]]; then
+            pin="$(sed -n 's/^tacplus:[[:space:]]*//p' tacplus.lock)"
+            printf '\nBuilt from this tag'\''s source with tacplus %s, the pin of %s: the tag has no tacplus.lock.\n' \
+              "$pin" "$(git rev-parse --short HEAD)" >> "$RUNNER_TEMP/notes.md"
+          fi
+          # The GitHub release marked Latest is the highest release, never a patch on an older line.
+          flag=--latest=false
+          if [[ "$VERSION" == *-* ]]; then
+            flag=--prerelease
+          elif [[ "$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1.2,1n -k2,2n -k3,3n | tail -1)" == "$VERSION" ]]; then
+            flag=--latest
+          fi
+          { echo "tags=$tags"; echo "flag=$flag"; echo "revision=$revision"; echo "src=$src"; } >> "$GITHUB_OUTPUT"
+          echo "source: $VERSION ($revision)"
+          echo "image tags: $(for t in $tags; do printf '%s:%s ' "$IMAGE" "$t"; done)"
+          echo "release: $flag"
+          cat "$RUNNER_TEMP/notes.md"
+      - name: Gates and tenantecho
+        run: ci/release-build.sh "${{ steps.plan.outputs.src }}"
+      - uses: actions/checkout@v4
+        with:
+          repository: tacplus-dev/launcher
+          ref: ${{ env.LAUNCHER_COMMIT }}
+          path: .release/launcher-src
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .release/launcher-src/go.mod
+          cache: false
+      - name: launcher
+        working-directory: .release/launcher-src
+        run: |
+          for arch in $ARCHS; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "../launchers/launcher-linux-$arch" .
+          done
+      # The Dockerfile's apk runs on each target architecture.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: env.DRY_RUN != 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image
+        shell: bash
+        run: |
+          tags=""
+          [[ $DRY_RUN == true ]] || tags="${{ steps.plan.outputs.tags }}"
+          # shellcheck disable=SC2086 # the tags are words
+          ci/release-image.sh "${VERSION#v}" "${{ steps.plan.outputs.revision }}" "${{ steps.plan.outputs.src }}" .release/launchers $tags
+          [[ $DRY_RUN == true ]] || docker buildx imagetools inspect "$IMAGE:${VERSION#v}"
+      - name: GitHub release
+        if: env.DRY_RUN != 'true'
+        run: gh release create "$VERSION" --verify-tag --title "$VERSION" --notes-file "$RUNNER_TEMP/notes.md" ${{ steps.plan.outputs.flag }}
+      # Fleets and clusters pull anonymously. A new package is private until an org owner makes it public
+      # (its Package settings; GitHub has no API for it), once: README, Releasing.
+      - name: Pulls need no credential
+        if: env.DRY_RUN != 'true'
+        run: |
+          docker logout ghcr.io
+          docker buildx imagetools inspect "$IMAGE:${VERSION#v}" > /dev/null || {
+            echo "::error::$IMAGE:${VERSION#v} is published but not public: an org owner makes the package public (Package settings, Change visibility)"
+            exit 1
+          }
