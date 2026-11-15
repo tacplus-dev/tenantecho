@@ -28,10 +28,10 @@ pings the tenant you name through its generated TypeScript W2S client and shows 
 tenant whose instance answered. It signs nobody in: it uses the gateway's session on the same origin
 and sends a signed-out user to `/`.
 
-`web/tacplus.yaml` generates the client into `web/model/` (not committed; the fleet builder
-regenerates it against the fleet's merged protos). The root `tacplus.yaml` declares it
-(`contribute: {webapp: {dir: web, title: "Echo"}}`), so a fleet takes it from the release it locks. To
-build and test it:
+`web/tacplus.yaml`, with its own `tacplus.lock` (the root's pin: move both together), generates the
+client into `web/model/` (not committed; the fleet builder regenerates it against the fleet's merged
+protos). The root `tacplus.yaml` declares it (`contribute: {webapp: {dir: web, title: "Echo"}}`), so a
+fleet takes it from the release it locks. To build and test it:
 
 ```sh
 cd web

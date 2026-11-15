@@ -25,6 +25,9 @@ check() { # name got want
 
 [[ -f tacplus.yaml && -d web ]] || { echo "web_test.sh: run it at the repository's root" >&2; exit 1; }
 
+# web/ is a project of its own, so it has its own lock: the root's pin, moved with it (`tacplus pin` in both).
+check "web: tacplus.lock is the root's" "$(cmp -s tacplus.lock web/tacplus.lock && echo same)" "same"
+
 before="$(git diff HEAD | sha256sum)"
 (cd web && "$tacplus" build)
 check "web: generating the client leaves tracked files as they were" "$(git diff HEAD | sha256sum)" "$before"
