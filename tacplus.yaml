@@ -12,6 +12,10 @@ depends:
 # A derived Go package is <module>/tacplus, so the output segment must be "tacplus".
 output-dir: tacplus
 output-name: tacplus
+# The ping page this service contributes to its fleet's gateway, served at /-/apps/tenantecho/ (tacplus
+# docs/USER.md, "Contributing to the gateway"; README, The ping page).
+contribute:
+  webapp: {dir: web, title: "Echo"}
 header: |
   Copyright (c) 2026 Jody Scott
   SPDX-License-Identifier: Apache-2.0

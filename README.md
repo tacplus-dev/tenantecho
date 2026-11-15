@@ -29,7 +29,9 @@ tenant whose instance answered. It signs nobody in: it uses the gateway's sessio
 and sends a signed-out user to `/`.
 
 `web/tacplus.yaml` generates the client into `web/model/` (not committed; the fleet builder
-regenerates it against the fleet's merged protos). To build and test it:
+regenerates it against the fleet's merged protos). The root `tacplus.yaml` declares it
+(`contribute: {webapp: {dir: web, title: "Echo"}}`), so a fleet takes it from the release it locks. To
+build and test it:
 
 ```sh
 cd web
@@ -42,8 +44,10 @@ TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build   # writes web/dist/
 ## Gates
 
 `just gates` is what every change passes before it lands: generation with the pinned compiler, which must
-leave every tracked file as it found it, `go build`, `go vet`, `go test`, and the release scripts' tests
-(`ci/release_test.sh`). The build job runs it in the build image `tacplus.lock` pins, with the image's own
+leave every tracked file as it found it, `go build`, `go vet`, `go test`, the release scripts' tests
+(`ci/release_test.sh`), and the ping page's gate (`ci/web_test.sh`, `just web`): the root `tacplus.yaml`'s
+`contribute.webapp`, the page's client generated, its tests, and `npm run build` with
+`TACPLUS_WEB_BASE=/-/apps/tenantecho/` twice from a clean `node_modules`, to the same bytes. The build job runs it in the build image `tacplus.lock` pins, with the image's own
 `tacplus`; locally, `TACPLUS_BIN` names yours.
 
 ## Releasing

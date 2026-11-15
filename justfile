@@ -34,9 +34,14 @@ test: build
 release-test:
   {{justfile_directory()}}/ci/release_test.sh
 
+# The ping page (web/, README), as the fleet builder's webapp recipe builds it: its client generated, its
+# tests, and its build twice to the same bytes (ci/web_test.sh), against the working directory's source.
+web:
+  TACPLUS_BIN={{TACPLUS}} {{justfile_directory()}}/ci/web_test.sh
+
 # The gates every change passes before it lands: the build job runs them in the pinned build image, and
 # release.yml runs them on the tag it releases (README, Releasing).
-gates: test release-test
+gates: test release-test web
 
 clean:
-  rm -rf tacplus tenantecho
+  rm -rf tacplus tenantecho web/model web/node_modules web/dist
