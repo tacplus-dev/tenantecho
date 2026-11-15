@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests of the release scripts (.github/workflows/release.yml) that need no container: the image tags
-# (ci/release-tags.sh), the notes (ci/release-notes.sh) and the tacplus.lock a release builds with
-# (ci/release-lock.sh), each in a scratch repository with the tags a case needs.
+# (ci/release-tags.sh), the notes (ci/release-notes.sh), each in a scratch repository with the tags a case
+# needs, and the tacplus.lock and justfile a release builds with (ci/release-file.sh, the justfile's
+# release-test).
 #
 # Usage:  ci/release_test.sh
 set -euo pipefail
@@ -71,11 +72,21 @@ r="$(repo bad "a:v1")"
 check "release-tags.sh refuses v1" "$(tags "$r" v1 2>/dev/null || echo refused)" "refused"
 check "release-notes.sh refuses v1" "$(notes "$r" v1 2>/dev/null || echo refused)" "refused"
 
-# The lock: the source's own, else the one beside these scripts (a tag cut before tacplus.lock existed).
+# The lock and the justfile: the source's own, else the one beside these scripts, the workflow's commit's.
+# "unlocked" is a tag cut before either existed, as v0.1.0 was: no tacplus.lock, no justfile, no ci/.
+root="$(cd "$ci/.." && pwd)"
 mkdir -p "$scratch/locked" "$scratch/unlocked"
-touch "$scratch/locked/tacplus.lock"
-check "lock: the source's own" "$("$ci/release-lock.sh" "$scratch/locked")" "$scratch/locked/tacplus.lock"
-check "lock: none in the source, the workflow's" "$("$ci/release-lock.sh" "$scratch/unlocked" 2>/dev/null)" "$(cd "$ci/.." && pwd)/tacplus.lock"
-check "lock: none in the source, says so" "$("$ci/release-lock.sh" "$scratch/unlocked" 2>&1 >/dev/null | grep -c 'has no tacplus.lock')" "1"
+touch "$scratch/locked/tacplus.lock" "$scratch/locked/justfile"
+check "lock: the source's own" "$("$ci/release-file.sh" "$scratch/locked" tacplus.lock)" "$scratch/locked/tacplus.lock"
+check "lock: none in the source, the workflow's" "$("$ci/release-file.sh" "$scratch/unlocked" tacplus.lock 2>/dev/null)" "$root/tacplus.lock"
+check "lock: none in the source, says so" "$("$ci/release-file.sh" "$scratch/unlocked" tacplus.lock 2>&1 >/dev/null | grep -c 'has no tacplus.lock')" "1"
+check "justfile: the source's own" "$("$ci/release-file.sh" "$scratch/locked" justfile)" "$scratch/locked/justfile"
+check "justfile: none in the source, the workflow's" "$("$ci/release-file.sh" "$scratch/unlocked" justfile 2>/dev/null)" "$root/justfile"
+check "justfile: none in the source, says so" "$("$ci/release-file.sh" "$scratch/unlocked" justfile 2>&1 >/dev/null | grep -c 'has no justfile')" "1"
+check "release-file.sh refuses a file neither has" "$("$ci/release-file.sh" "$scratch/unlocked" nothing 2>/dev/null || echo refused)" "refused"
+# The workflow's justfile, lent to a source without ci/, runs its own release tests, not the source's
+# (which the failed release of v0.1.0 would have needed: `no justfile found`, then no ci/release_test.sh).
+check "justfile lent to a source without ci/: release-test is the justfile's own" \
+  "$(just --justfile "$root/justfile" --working-directory "$scratch/unlocked" -n release-test 2>&1)" "$root/ci/release_test.sh"
 
 exit "$failed"

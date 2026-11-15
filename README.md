@@ -74,7 +74,8 @@ The workflow can also be run by hand (Actions, release, Run workflow) with a ver
   image tags and notes that release would get, publishing nothing;
 - with `publish`, it releases an existing tag that has no release yet, as its tag push would have, with the
   scripts of the workflow's commit: for a tag cut before the workflow existed (v0.1.0). A tag without a
-  `tacplus.lock` builds with that commit's pin, and its notes say so.
+  `tacplus.lock` builds with that commit's pin, and its notes say so; one without a `justfile` passes that
+  commit's `just gates`, run against the tag's source (`ci/release-file.sh`).
 
 The package must be public, so pulls need no credential: the first release's last step fails, naming it,
 until an org owner makes it public once (the package's settings, Change visibility).
