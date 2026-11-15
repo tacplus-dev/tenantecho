@@ -10,3 +10,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-06 looper issue Base image: alpine:3.22 is not the latest Alpine line (3.24) (#4)
 - 2026-11-09 looper issue tacplus floor 2.5 is behind the latest released line (2.6): move the floor to 2.6 and commit tacplus.lock (#9)
 - 2026-11-15 looper issue Release: tag vMAJOR.MINOR.PATCH (start at v0.1.0) and publish its image (#2, e271a88)
+- 2026-11-15 looper issue Declare route fields: a target tenant on every tenant-owned rpc, floor 2.5 (#5)
