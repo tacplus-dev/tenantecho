@@ -1,0 +1,14 @@
+# The security findings tenantecho accepts, read by the build's security checks
+# (looper-scan, tacplus-dev/looper README: Security checks). Each entry needs an id,
+# a reason, who decided and when it expires; an expired one fails the checks again.
+#
+# #12: trivy's DS-0026 (no HEALTHCHECK in a Dockerfile), for every Dockerfile here.
+# Kubernetes ignores a Docker HEALTHCHECK: health comes from the operator's liveness
+# and readiness probes, and the image's PID 1, the launcher (HEALTH_PORT=8443), kills
+# a deadlocked child on its gRPC health. Decided by Jody on #12, 2026-11-17, one rule
+# for every DS-0026 finding; it expires on 2027-05-17 (a six-month review).
+exceptions:
+  - id: DS-0026
+    reason: "#12, the Dockerfile has no HEALTHCHECK by design: Kubernetes ignores it, the operator's liveness and readiness probes are the health check, and the launcher (PID 1, HEALTH_PORT=8443) kills a deadlocked child on gRPC health"
+    decided_by: "jodydadescott (hub on #12, 2026-11-17)"
+    expires: 2027-05-17
