@@ -15,3 +15,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-15 looper issue Contribute a ping page to the fleet's gateway: the example module (tacplus#195) (#7, a59708b)
 - 2026-11-15 looper release v0.2.1 (https://github.com/tacplus-dev/tenantecho/releases/tag/v0.2.1)
 - 2026-11-15 looper issue GO-2026-6859 (net/http HTTP/1 crash): the pinned build image (tacplus 2.6.1) compiles with go1.27.3; re-pin to 2.6.8 (go1.27.4) (#11, 67286ce)
+- 2026-11-15 looper issue Pin the build: floor 2.6 and a committed tacplus.lock, so the build pipeline and its security checks run on this repository (#10, 91359ef)
