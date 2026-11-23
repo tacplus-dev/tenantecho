@@ -18,3 +18,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-15 looper issue Pin the build: floor 2.6 and a committed tacplus.lock, so the build pipeline and its security checks run on this repository (#10, 91359ef)
 - 2026-11-17 looper issue Security checks: new non-blocking trivy DS-0026 (LOW), the release Dockerfile has no HEALTHCHECK: fix or except (#12)
 - 2026-11-23 looper release v0.2.3 (https://github.com/tacplus-dev/tenantecho/releases/tag/v0.2.3)
+- 2026-11-23 looper issue Pinned images behind their lines: relock (tacplus.lock: tacplus 2.6.13 → 2.6.14, and 1 more) (#14)
