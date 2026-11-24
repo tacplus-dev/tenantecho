@@ -45,7 +45,8 @@ TACPLUS_WEB_BASE=/-/apps/tenantecho/ npm run build   # writes web/dist/
 
 `just gates` is what every change passes before it lands: generation with the pinned compiler, which must
 leave every tracked file as it found it, `go build`, `go vet`, `go test`, the release scripts' tests
-(`ci/release_test.sh`), and the ping page's gate (`ci/web_test.sh`, `just web`): the root `tacplus.yaml`'s
+(`ci/release_test.sh`), the Dockerfiles' bases pinned by digest (`ci/dockerfile_test.sh`: any `FROM`
+without `@sha256:` fails it), and the ping page's gate (`ci/web_test.sh`, `just web`): the root `tacplus.yaml`'s
 `contribute.webapp`, the page's client generated, its tests, and `npm run build` with
 `TACPLUS_WEB_BASE=/-/apps/tenantecho/` twice from a clean `node_modules`, to the same bytes. The build job runs it in the build image `tacplus.lock` pins, with the image's own
 `tacplus`; locally, `TACPLUS_BIN` names yours.

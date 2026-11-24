@@ -34,6 +34,10 @@ test: build
 release-test:
   {{justfile_directory()}}/ci/release_test.sh
 
+# Every FROM of the Dockerfiles pinned by digest, never a floating tag (ci/dockerfile_test.sh, #15).
+dockerfile-test:
+  {{justfile_directory()}}/ci/dockerfile_test.sh
+
 # The ping page (web/, README), as the fleet builder's webapp recipe builds it: its client generated, its
 # tests, and its build twice to the same bytes (ci/web_test.sh), against the working directory's source.
 web:
@@ -41,7 +45,7 @@ web:
 
 # The gates every change passes before it lands: the build job runs them in the pinned build image, and
 # release.yml runs them on the tag it releases (README, Releasing).
-gates: test release-test web
+gates: test release-test dockerfile-test web
 
 clean:
   rm -rf tacplus tenantecho web/model web/node_modules web/dist
