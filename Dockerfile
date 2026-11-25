@@ -4,7 +4,7 @@
 # Release image: the pre-built static tenantecho binary on a minimal base. The binary
 # is built by the fleet's image pipeline against the fleet's merged protos, or by this
 # repository's release against its own (ci/release-build.sh, .github/workflows/release.yml).
-ARG BASE_IMAGE=alpine:3.24
+ARG BASE_IMAGE=alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 FROM ${BASE_IMAGE}
 ARG VERSION=0.0.0
 ARG VCS_REF=local
